@@ -1,0 +1,27 @@
+# Backend
+backend/target/
+backend/.mvn/
+backend/*.iml
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/*.iml
+android/.idea/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+backend/src/main/resources/static/uploads/images/*
+backend/src/main/resources/static/uploads/videos/*
+!backend/src/main/resources/static/uploads/images/.gitkeep
+!backend/src/main/resources/static/uploads/videos/.gitkeep
