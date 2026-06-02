@@ -1,5 +1,6 @@
 package com.cycleproject.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -21,6 +22,7 @@ public class CustomerGroup {
 
     private String description;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "customerGroup")
     private List<User> customers;
 

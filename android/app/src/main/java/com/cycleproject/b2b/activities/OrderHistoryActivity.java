@@ -33,6 +33,9 @@ public class OrderHistoryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_order_history);
 
         setTitle("Orders");
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
         apiService = RetrofitClient.getApiService(this);
         session = new SessionManager(this);
 
@@ -62,6 +65,12 @@ public class OrderHistoryActivity extends AppCompatActivity {
 
         swipeRefresh.setOnRefreshListener(this::loadOrders);
         loadOrders();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
     }
 
     private void loadOrders() {

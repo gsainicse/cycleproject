@@ -24,7 +24,7 @@ public class UserService {
     }
 
     public List<User> getApprovedCustomers() {
-        return userRepository.findByApprovalStatus(User.ApprovalStatus.APPROVED);
+        return userRepository.findByApprovalStatusAndRole(User.ApprovalStatus.APPROVED, User.Role.CUSTOMER);
     }
 
     public ApiResponse approveUser(Long userId, Long groupId) {
