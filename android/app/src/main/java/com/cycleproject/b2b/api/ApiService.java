@@ -129,4 +129,21 @@ public interface ApiService {
 
     @GET("api/admin/bills/pending")
     Call<ApiResponse> getAllPendingBills();
+
+    // Customer - Disputes
+    @GET("api/customer/disputes/eligible-orders")
+    Call<ApiResponse> getDisputeEligibleOrders();
+
+    @GET("api/customer/disputes")
+    Call<ApiResponse> getMyDisputes();
+
+    @POST("api/customer/disputes")
+    Call<ApiResponse> raiseDispute(@Body DisputeRequest request);
+
+    // Customer - Ledger
+    @GET("api/customer/ledger/summary")
+    Call<ApiResponse> getLedgerSummary();
+
+    @GET("api/customer/ledger/history")
+    Call<ApiResponse> getAccountHistory();
 }

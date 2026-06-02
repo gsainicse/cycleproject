@@ -36,6 +36,9 @@ public class ProductListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_product_list);
 
         setTitle("Products");
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
         apiService = RetrofitClient.getApiService(this);
         session = new SessionManager(this);
 
@@ -63,6 +66,12 @@ public class ProductListActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         loadProducts();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
     }
 
     private void loadProducts() {

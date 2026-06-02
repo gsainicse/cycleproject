@@ -31,6 +31,9 @@ public class CustomerManagementActivity extends AppCompatActivity implements Cus
         setContentView(R.layout.activity_customer_management);
 
         setTitle("Customer Management");
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
         apiService = RetrofitClient.getApiService(this);
 
         recyclerView = findViewById(R.id.recycler_view);
@@ -54,6 +57,12 @@ public class CustomerManagementActivity extends AppCompatActivity implements Cus
         });
 
         loadCustomers();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
     }
 
     private void loadCustomers() {
