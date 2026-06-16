@@ -43,6 +43,7 @@ public class User {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "customer_group_id")
+    @ToString.Exclude
     private CustomerGroup customerGroup;
 
     private LocalDateTime createdAt;

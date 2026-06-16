@@ -37,5 +37,6 @@
         <activity android:name=".activities.CustomerManagementActivity" />
         <activity android:name=".activities.ReportsActivity" />
         <activity android:name=".activities.AccountActivity" />
+        <activity android:name=".activities.ProductDetailActivity" />
     </application>
 </manifest>

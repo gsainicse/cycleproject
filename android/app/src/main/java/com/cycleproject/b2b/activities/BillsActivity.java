@@ -31,6 +31,9 @@ public class BillsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_bills);
 
         setTitle("Bills");
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
         apiService = RetrofitClient.getApiService(this);
         session = new SessionManager(this);
 
@@ -55,6 +58,12 @@ public class BillsActivity extends AppCompatActivity {
         });
 
         loadBills();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
     }
 
     private void loadBills() {

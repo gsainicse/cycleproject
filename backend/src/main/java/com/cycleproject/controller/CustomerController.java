@@ -28,6 +28,7 @@ public class CustomerController {
 
     @GetMapping("/products")
     public ResponseEntity<ApiResponse> getProducts(@AuthenticationPrincipal User customer) {
+        System.out.println("Customer fetching products: " + (customer != null ? customer.getEmail() : "NULL"));
         return ResponseEntity.ok(productService.getProductsForCustomer(customer));
     }
 

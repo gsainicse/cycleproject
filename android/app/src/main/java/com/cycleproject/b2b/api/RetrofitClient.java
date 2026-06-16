@@ -19,15 +19,20 @@ public class RetrofitClient {
 
     public static ApiService getApiService(Context context) {
         if (apiService == null) {
+            Context appContext = context.getApplicationContext();
             HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
             logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 
             OkHttpClient client = new OkHttpClient.Builder()
-                    .addInterceptor(logging)
                     .addInterceptor(chain -> {
                         Request original = chain.request();
-                        SharedPreferences prefs = context.getSharedPreferences("auth", Context.MODE_PRIVATE);
+                        SharedPreferences prefs = appContext.getSharedPreferences("auth", Context.MODE_PRIVATE);
                         String token = prefs.getString("token", "");
+                        String role = prefs.getString("role", "");
+
+                        android.util.Log.d("RetrofitClient", "URL: " + original.url());
+                        android.util.Log.d("RetrofitClient", "Token: " + (token.isEmpty() ? "Empty" : "Present"));
+                        android.util.Log.d("RetrofitClient", "Role in Prefs: " + role);
 
                         Request.Builder builder = original.newBuilder();
                         if (!token.isEmpty()) {
@@ -35,6 +40,7 @@ public class RetrofitClient {
                         }
                         return chain.proceed(builder.build());
                     })
+                    .addInterceptor(logging)
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .readTimeout(30, TimeUnit.SECONDS)
                     .writeTimeout(30, TimeUnit.SECONDS)

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
@@ -19,17 +20,20 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final ProductPriceRepository priceRepository;
     private final CustomerGroupRepository groupRepository;
-
+    private final UserRepository userRepository;
+    
     @Value("${app.upload.dir}")
     private String uploadDir;
 
     public ProductService(ProductRepository productRepository, ProductPriceRepository priceRepository,
-                          CustomerGroupRepository groupRepository) {
+                          CustomerGroupRepository groupRepository,UserRepository userRepository) {
         this.productRepository = productRepository;
         this.priceRepository = priceRepository;
         this.groupRepository = groupRepository;
+        this.userRepository = userRepository;
     }
 
+    @Transactional
     public ApiResponse addProduct(ProductRequest request, MultipartFile[] images, MultipartFile[] videos) {
         Product product = Product.builder()
                 .name(request.getName())
@@ -39,8 +43,6 @@ public class ProductService {
                 .stockQuantity(request.getStockQuantity())
                 .active(true)
                 .build();
-
-        product = productRepository.save(product);
 
         // Save prices for each group
         if (request.getPrices() != null) {
@@ -52,7 +54,7 @@ public class ProductService {
                             .customerGroup(group)
                             .price(gp.getPrice())
                             .build();
-                    priceRepository.save(price);
+                    product.getPrices().add(price);
                 }
             }
         }
@@ -87,19 +89,32 @@ public class ProductService {
             }
         }
 
-        productRepository.save(product);
+        product = productRepository.save(product);
         return new ApiResponse(true, "Product added successfully", product.getId());
     }
 
+    @Transactional(readOnly = true)
     public List<Product> getAllProducts() {
         return productRepository.findByActiveTrue();
     }
 
+    @Transactional(readOnly = true)
     public ApiResponse getProductsForCustomer(User customer) {
-        List<Product> products = productRepository.findByActiveTrue();
-        Long groupId = customer.getCustomerGroup().getId();
+        if (customer == null) {
+            return new ApiResponse(false, "User session not found. Please login again.");
+        }
 
-        List<Map<String, Object>> productList = products.stream().map(p -> {
+        // Fetch user again to ensure group is loaded in the current transaction
+        User currentUser = userRepository.findById(customer.getId()).orElse(null);
+        if (currentUser == null || currentUser.getCustomerGroup() == null) {
+            return new ApiResponse(false, "Your account is pending approval or group assignment.");
+        }
+
+        List<Product> products = productRepository.findByActiveTrue();
+        Long groupId = currentUser.getCustomerGroup().getId();
+
+        List<Map<String, Object>> productList = new ArrayList<>();
+        for (Product p : products) {
             Map<String, Object> map = new HashMap<>();
             map.put("id", p.getId());
             map.put("name", p.getName());
@@ -107,12 +122,23 @@ public class ProductService {
             map.put("category", p.getCategory());
             map.put("sku", p.getSku());
             map.put("stockQuantity", p.getStockQuantity());
-            map.put("media", p.getMedia());
+
+            // Map media manually to avoid proxy issues
+            List<Map<String, String>> mediaList = new ArrayList<>();
+            if (p.getMedia() != null) {
+                for (ProductMedia m : p.getMedia()) {
+                    Map<String, String> mediaMap = new HashMap<>();
+                    mediaMap.put("filePath", m.getFilePath());
+                    mediaMap.put("mediaType", m.getMediaType().name());
+                    mediaList.add(mediaMap);
+                }
+            }
+            map.put("media", mediaList);
 
             ProductPrice price = priceRepository.findByProductIdAndCustomerGroupId(p.getId(), groupId).orElse(null);
             map.put("price", price != null ? price.getPrice() : null);
-            return map;
-        }).collect(Collectors.toList());
+            productList.add(map);
+        }
 
         return new ApiResponse(true, "Products fetched", productList);
     }

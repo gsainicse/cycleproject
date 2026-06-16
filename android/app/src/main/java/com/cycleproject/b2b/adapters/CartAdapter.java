@@ -7,9 +7,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
 import com.cycleproject.b2b.R;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,7 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
     private final Context context;
     private final List<Map<String, Object>> products;
     private final Map<Long, Integer> cart;
+    private static final String BASE_URL = "http://10.0.2.2:8080";
 
     public CartAdapter(Context context, List<Map<String, Object>> products, Map<Long, Integer> cart) {
         this.context = context;
@@ -41,6 +44,24 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
         Object price = product.get("price");
         holder.tvPrice.setText(price != null ? "₹" + price.toString() : "N/A");
 
+        // Load Image
+        List<Map<String, Object>> media = (List<Map<String, Object>>) product.get("media");
+        String imageUrl = null;
+        if (media != null && !media.isEmpty()) {
+            for (Map<String, Object> m : media) {
+                if ("IMAGE".equals(m.get("mediaType"))) {
+                    imageUrl = BASE_URL + getStr(m, "filePath");
+                    break;
+                }
+            }
+        }
+
+        Glide.with(context)
+                .load(imageUrl)
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .error(android.R.drawable.ic_menu_report_image)
+                .into(holder.ivProduct);
+
         Object idObj = product.get("id");
         long productId = idObj instanceof Double ? ((Double) idObj).longValue() : Long.parseLong(idObj.toString());
 
@@ -55,7 +76,11 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
             public void afterTextChanged(Editable s) {
                 String text = s.toString().trim();
                 if (!text.isEmpty()) {
-                    cart.put(productId, Integer.parseInt(text));
+                    try {
+                        cart.put(productId, Integer.parseInt(text));
+                    } catch (NumberFormatException e) {
+                        cart.remove(productId);
+                    }
                 } else {
                     cart.remove(productId);
                 }
@@ -76,6 +101,7 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvName, tvPrice;
+        ImageView ivProduct;
         EditText etQuantity;
         TextWatcher watcher;
 
@@ -83,6 +109,7 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
             super(view);
             tvName = view.findViewById(R.id.tv_product_name);
             tvPrice = view.findViewById(R.id.tv_price);
+            ivProduct = view.findViewById(R.id.iv_product);
             etQuantity = view.findViewById(R.id.et_quantity);
         }
     }

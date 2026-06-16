@@ -21,6 +21,9 @@ public class ReportsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_reports);
 
         setTitle("Reports");
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
         apiService = RetrofitClient.getApiService(this);
 
         findViewById(R.id.btn_monthly_sales).setOnClickListener(v -> loadMonthlySales());
@@ -28,6 +31,12 @@ public class ReportsActivity extends AppCompatActivity {
         findViewById(R.id.btn_product_quantities).setOnClickListener(v -> loadProductQuantities());
         findViewById(R.id.btn_sales_comparison).setOnClickListener(v -> loadSalesComparison());
         findViewById(R.id.btn_receivables).setOnClickListener(v -> loadReceivables());
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
     }
 
     private void loadMonthlySales() {

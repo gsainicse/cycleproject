@@ -1,6 +1,7 @@
 package com.cycleproject.b2b.adapters;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,7 +9,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
 import com.cycleproject.b2b.R;
+import com.cycleproject.b2b.activities.ProductDetailActivity;
+import com.google.gson.Gson;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +21,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
     private final Context context;
     private final List<Map<String, Object>> products;
     private final boolean isAdmin;
+    private static final String BASE_URL = "http://10.0.2.2:8080";
 
     public ProductAdapter(Context context, List<Map<String, Object>> products, boolean isAdmin) {
         this.context = context;
@@ -45,6 +50,34 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
         } else {
             holder.tvPrice.setVisibility(View.GONE);
         }
+
+        // Load Image
+        List<Map<String, Object>> media = (List<Map<String, Object>>) product.get("media");
+        String imageUrl = null;
+        if (media != null && !media.isEmpty()) {
+            android.util.Log.d("ProductAdapter", "Product: " + product.get("name") + " has " + media.size() + " media items");
+            for (Map<String, Object> m : media) {
+                if ("IMAGE".equals(m.get("mediaType"))) {
+                    imageUrl = BASE_URL + getStr(m, "filePath");
+                    android.util.Log.d("ProductAdapter", "Loading image: " + imageUrl);
+                    break;
+                }
+            }
+        } else {
+            android.util.Log.d("ProductAdapter", "Product: " + product.get("name") + " has NO media items");
+        }
+
+        Glide.with(context)
+                .load(imageUrl)
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .error(android.R.drawable.ic_menu_report_image)
+                .into(holder.ivProduct);
+
+        holder.itemView.setOnClickListener(v -> {
+            Intent intent = new Intent(context, ProductDetailActivity.class);
+            intent.putExtra("product_json", new Gson().toJson(product));
+            context.startActivity(intent);
+        });
     }
 
     @Override

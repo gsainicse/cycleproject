@@ -34,6 +34,9 @@ public class PlaceOrderActivity extends AppCompatActivity {
         setContentView(R.layout.activity_place_order);
 
         setTitle("Place Order");
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
         apiService = RetrofitClient.getApiService(this);
 
         recyclerView = findViewById(R.id.recycler_view);
@@ -44,27 +47,53 @@ public class PlaceOrderActivity extends AppCompatActivity {
         adapter = new CartAdapter(this, products, cart);
         recyclerView.setAdapter(adapter);
 
+        long preSelectedId = getIntent().getLongExtra("selected_product_id", -1);
+        if (preSelectedId != -1) {
+            cart.put(preSelectedId, 1);
+        }
+
         btnPlaceOrder.setOnClickListener(v -> placeOrder());
         loadProducts();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
     }
 
     private void loadProducts() {
         apiService.getProducts().enqueue(new Callback<ApiResponse>() {
             @Override
             public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    Object data = response.body().getData();
-                    if (data instanceof List) {
-                        products.clear();
-                        products.addAll((List<Map<String, Object>>) data);
-                        adapter.notifyDataSetChanged();
+                if (response.isSuccessful() && response.body() != null) {
+                    ApiResponse apiResponse = response.body();
+                    if (apiResponse.isSuccess()) {
+                        Object data = apiResponse.getData();
+                        if (data instanceof List) {
+                            products.clear();
+                            products.addAll((List<Map<String, Object>>) data);
+                            adapter.notifyDataSetChanged();
+                        }
+                    } else {
+                        Toast.makeText(PlaceOrderActivity.this, apiResponse.getMessage(), Toast.LENGTH_LONG).show();
                     }
+                } else {
+                    String errorMsg = "Failed to load products";
+                    if (response.errorBody() != null) {
+                        try {
+                            errorMsg += " (" + response.code() + "): " + response.errorBody().string();
+                        } catch (java.io.IOException e) {}
+                    }
+                    Toast.makeText(PlaceOrderActivity.this, errorMsg, Toast.LENGTH_LONG).show();
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse> call, Throwable t) {
-                Toast.makeText(PlaceOrderActivity.this, "Error loading products", Toast.LENGTH_SHORT).show();
+                String msg = t.getMessage();
+                if (msg == null) msg = t.getClass().getSimpleName();
+                Toast.makeText(PlaceOrderActivity.this, "Network error: " + msg, Toast.LENGTH_SHORT).show();
             }
         });
     }

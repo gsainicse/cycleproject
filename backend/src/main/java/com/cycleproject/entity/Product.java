@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -27,10 +28,14 @@ public class Product {
     private Boolean active;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProductPrice> prices;
+    @Builder.Default
+    @ToString.Exclude
+    private List<ProductPrice> prices = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProductMedia> media;
+    @Builder.Default
+    @ToString.Exclude
+    private List<ProductMedia> media = new ArrayList<>();
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

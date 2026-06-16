@@ -85,11 +85,8 @@ public interface ApiService {
     @GET("api/admin/products")
     Call<ApiResponse> getAllProducts();
 
-    @Multipart
     @POST("api/admin/products")
-    Call<ApiResponse> addProduct(@Part("product") RequestBody product,
-                                 @Part List<MultipartBody.Part> images,
-                                 @Part List<MultipartBody.Part> videos);
+    Call<ApiResponse> addProduct(@Body RequestBody body);
 
     @DELETE("api/admin/products/{productId}")
     Call<ApiResponse> removeProduct(@Path("productId") long productId);

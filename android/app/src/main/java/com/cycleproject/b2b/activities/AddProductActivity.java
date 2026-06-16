@@ -3,6 +3,8 @@ package com.cycleproject.b2b.activities;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
@@ -26,7 +28,8 @@ import java.util.*;
 
 public class AddProductActivity extends AppCompatActivity {
 
-    private TextInputEditText etName, etDescription, etCategory, etSku, etStock;
+    private TextInputEditText etName, etDescription, etSku, etStock;
+    private AutoCompleteTextView etCategory;
     private TextInputEditText etPriceA, etPriceB, etPriceC;
     private Button btnSelectImages, btnSelectVideos, btnAdd;
     private ApiService apiService;
@@ -69,12 +72,17 @@ public class AddProductActivity extends AppCompatActivity {
         setContentView(R.layout.activity_add_product);
 
         setTitle("Add Product");
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
         apiService = RetrofitClient.getApiService(this);
 
         etName = findViewById(R.id.et_name);
         etDescription = findViewById(R.id.et_description);
         etCategory = findViewById(R.id.et_category);
         etSku = findViewById(R.id.et_sku);
+
+        setupCategoryDropdown();
         etStock = findViewById(R.id.et_stock);
         etPriceA = findViewById(R.id.et_price_a);
         etPriceB = findViewById(R.id.et_price_b);
@@ -97,7 +105,33 @@ public class AddProductActivity extends AppCompatActivity {
             videoPickerLauncher.launch(intent);
         });
 
+        btnSelectImages.setOnLongClickListener(v -> {
+            selectedImages.clear();
+            btnSelectImages.setText("Select Images");
+            Toast.makeText(this, "Images cleared", Toast.LENGTH_SHORT).show();
+            return true;
+        });
+
+        btnSelectVideos.setOnLongClickListener(v -> {
+            selectedVideos.clear();
+            btnSelectVideos.setText("Select Videos (Optional)");
+            Toast.makeText(this, "Videos cleared", Toast.LENGTH_SHORT).show();
+            return true;
+        });
+
         btnAdd.setOnClickListener(v -> addProduct());
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
+    }
+
+    private void setupCategoryDropdown() {
+        String[] categories = {"Full Cycle", "Parts", "Kids Cycle", "Kids Toy"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, categories);
+        etCategory.setAdapter(adapter);
     }
 
     private void addProduct() {
@@ -125,22 +159,22 @@ public class AddProductActivity extends AppCompatActivity {
         String json = new Gson().toJson(product);
         RequestBody productBody = RequestBody.create(MediaType.parse("application/json"), json);
 
-        // Build image parts
-        List<MultipartBody.Part> imageParts = new ArrayList<>();
+        MultipartBody.Builder builder = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("product", null, productBody);
+
         for (Uri uri : selectedImages) {
             MultipartBody.Part part = createFilePart("images", uri);
-            if (part != null) imageParts.add(part);
+            if (part != null) builder.addPart(part);
         }
 
-        // Build video parts
-        List<MultipartBody.Part> videoParts = new ArrayList<>();
         for (Uri uri : selectedVideos) {
             MultipartBody.Part part = createFilePart("videos", uri);
-            if (part != null) videoParts.add(part);
+            if (part != null) builder.addPart(part);
         }
 
         btnAdd.setEnabled(false);
-        apiService.addProduct(productBody, imageParts, videoParts).enqueue(new Callback<ApiResponse>() {
+        apiService.addProduct(builder.build()).enqueue(new Callback<ApiResponse>() {
             @Override
             public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
                 btnAdd.setEnabled(true);
@@ -148,7 +182,15 @@ public class AddProductActivity extends AppCompatActivity {
                     Toast.makeText(AddProductActivity.this, "Product added!", Toast.LENGTH_SHORT).show();
                     finish();
                 } else {
-                    Toast.makeText(AddProductActivity.this, "Failed to add product", Toast.LENGTH_SHORT).show();
+                    String msg = "Failed to add product";
+                    if (response.errorBody() != null) {
+                        try {
+                            msg += ": " + response.errorBody().string();
+                        } catch (IOException e) {}
+                    } else if (response.body() != null) {
+                        msg += ": " + response.body().getMessage();
+                    }
+                    Toast.makeText(AddProductActivity.this, msg, Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -172,13 +214,39 @@ public class AddProductActivity extends AppCompatActivity {
     private MultipartBody.Part createFilePart(String partName, Uri uri) {
         try {
             InputStream is = getContentResolver().openInputStream(uri);
-            byte[] bytes = new byte[is.available()];
-            is.read(bytes);
+            if (is == null) return null;
+            byte[] bytes = getBytes(is);
             is.close();
-            RequestBody body = RequestBody.create(MediaType.parse("multipart/form-data"), bytes);
-            return MultipartBody.Part.createFormData(partName, "file", body);
+
+            String mimeType = getContentResolver().getType(uri);
+            if (mimeType == null) {
+                if (partName.equals("images")) mimeType = "image/jpeg";
+                else if (partName.equals("videos")) mimeType = "video/mp4";
+                else mimeType = "application/octet-stream";
+            }
+
+            String extension = android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+            if (extension == null) {
+                if (mimeType.startsWith("image/")) extension = "jpg";
+                else if (mimeType.startsWith("video/")) extension = "mp4";
+            }
+            String fileName = "file_" + System.currentTimeMillis() + (extension != null ? "." + extension : "");
+
+            RequestBody body = RequestBody.create(MediaType.parse(mimeType), bytes);
+            return MultipartBody.Part.createFormData(partName, fileName, body);
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private byte[] getBytes(InputStream inputStream) throws IOException {
+        ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+        int bufferSize = 1024;
+        byte[] buffer = new byte[bufferSize];
+        int len;
+        while ((len = inputStream.read(buffer)) != -1) {
+            byteBuffer.write(buffer, 0, len);
+        }
+        return byteBuffer.toByteArray();
     }
 }

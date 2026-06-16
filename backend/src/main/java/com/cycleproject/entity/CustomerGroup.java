@@ -24,6 +24,7 @@ public class CustomerGroup {
 
     @JsonIgnore
     @OneToMany(mappedBy = "customerGroup")
+    @ToString.Exclude
     private List<User> customers;
 
     private LocalDateTime createdAt;

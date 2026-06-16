@@ -24,6 +24,9 @@ public class AccountActivity extends AppCompatActivity {
         setContentView(R.layout.activity_account);
 
         setTitle("My Account");
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
         apiService = RetrofitClient.getApiService(this);
 
         tvBusinessName = findViewById(R.id.tv_business_name);
@@ -34,6 +37,12 @@ public class AccountActivity extends AppCompatActivity {
         tvGst = findViewById(R.id.tv_gst);
 
         loadAccount();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
     }
 
     private void loadAccount() {

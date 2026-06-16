@@ -39,6 +39,9 @@ public class AdminDashboardActivity extends AppCompatActivity {
         findViewById(R.id.card_bills).setOnClickListener(v ->
                 startActivity(new Intent(this, BillsActivity.class)));
 
+        findViewById(R.id.card_add_product).setOnClickListener(v ->
+                startActivity(new Intent(this, AddProductActivity.class)));
+
         findViewById(R.id.btn_logout).setOnClickListener(v -> {
             session.logout();
             RetrofitClient.resetClient();

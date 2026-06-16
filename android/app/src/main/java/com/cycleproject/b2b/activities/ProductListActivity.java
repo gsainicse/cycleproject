@@ -29,13 +29,19 @@ public class ProductListActivity extends AppCompatActivity {
     private ApiService apiService;
     private SessionManager session;
     private List<Map<String, Object>> products = new ArrayList<>();
+    private String categoryFilter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_product_list);
 
-        setTitle("Products");
+        categoryFilter = getIntent().getStringExtra("category");
+        if (categoryFilter != null) {
+            setTitle(categoryFilter);
+        } else {
+            setTitle("Products");
+        }
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
@@ -87,20 +93,50 @@ public class ProductListActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
                 swipeRefresh.setRefreshing(false);
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    Object data = response.body().getData();
-                    if (data instanceof List) {
-                        products.clear();
-                        products.addAll((List<Map<String, Object>>) data);
-                        adapter.notifyDataSetChanged();
+                android.util.Log.d("ProductListActivity", "Response code: " + response.code());
+                if (response.isSuccessful() && response.body() != null) {
+                    ApiResponse apiResponse = response.body();
+                    android.util.Log.d("ProductListActivity", "Success: " + apiResponse.isSuccess() + ", Msg: " + apiResponse.getMessage());
+                    if (apiResponse.isSuccess()) {
+                        Object data = apiResponse.getData();
+                        if (data instanceof List) {
+                            List<Map<String, Object>> allProducts = (List<Map<String, Object>>) data;
+                            products.clear();
+                            if (categoryFilter != null) {
+                                for (Map<String, Object> p : allProducts) {
+                                    if (categoryFilter.equals(p.get("category"))) {
+                                        products.add(p);
+                                    }
+                                }
+                            } else {
+                                products.addAll(allProducts);
+                            }
+                            adapter.notifyDataSetChanged();
+                        }
+                    } else {
+                        Toast.makeText(ProductListActivity.this, apiResponse.getMessage(), Toast.LENGTH_LONG).show();
                     }
+                } else {
+                    String errorMsg = "Failed to load products";
+                    if (response.errorBody() != null) {
+                        try {
+                            errorMsg += " (" + response.code() + "): " + response.errorBody().string();
+                        } catch (java.io.IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    android.util.Log.e("ProductListActivity", errorMsg);
+                    Toast.makeText(ProductListActivity.this, errorMsg, Toast.LENGTH_LONG).show();
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse> call, Throwable t) {
                 swipeRefresh.setRefreshing(false);
-                Toast.makeText(ProductListActivity.this, "Error loading products", Toast.LENGTH_SHORT).show();
+                String msg = t.getMessage();
+                if (msg == null) msg = t.getClass().getSimpleName();
+                android.util.Log.e("ProductListActivity", "Network error: " + msg, t);
+                Toast.makeText(ProductListActivity.this, "Network error: " + msg, Toast.LENGTH_LONG).show();
             }
         });
     }
