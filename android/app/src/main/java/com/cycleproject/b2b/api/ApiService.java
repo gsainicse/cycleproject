@@ -95,6 +95,9 @@ public interface ApiService {
     Call<ApiResponse> updatePrices(@Path("productId") long productId, @Body List<Map<String, Object>> prices);
 
     // Admin - Orders
+    @GET("api/admin/orders")
+    Call<ApiResponse> getAdminOrders();
+
     @GET("api/admin/orders/pending")
     Call<ApiResponse> getAdminPendingOrders();
 

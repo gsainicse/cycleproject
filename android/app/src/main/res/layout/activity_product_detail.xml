@@ -121,5 +121,14 @@
             android:text="Add to Cart"
             android:backgroundTint="@color/primary"/>
 
+        <Button
+            android:id="@+id/btn_delete"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Delete Product"
+            android:backgroundTint="@color/red"
+            android:layout_marginTop="12dp"
+            android:visibility="gone"/>
+
     </LinearLayout>
 </ScrollView>

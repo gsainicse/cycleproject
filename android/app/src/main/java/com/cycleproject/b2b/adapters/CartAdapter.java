@@ -20,10 +20,10 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
 
     private final Context context;
     private final List<Map<String, Object>> products;
-    private final Map<Long, Integer> cart;
+    private final Map<String, Integer> cart;
     private static final String BASE_URL = "http://10.0.2.2:8080";
 
-    public CartAdapter(Context context, List<Map<String, Object>> products, Map<Long, Integer> cart) {
+    public CartAdapter(Context context, List<Map<String, Object>> products, Map<String, Integer> cart) {
         this.context = context;
         this.products = products;
         this.cart = cart;
@@ -63,7 +63,7 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
                 .into(holder.ivProduct);
 
         Object idObj = product.get("id");
-        long productId = idObj instanceof Double ? ((Double) idObj).longValue() : Long.parseLong(idObj.toString());
+        String productId = String.valueOf(idObj instanceof Double ? ((Double) idObj).longValue() : idObj);
 
         holder.etQuantity.removeTextChangedListener(holder.watcher);
         Integer qty = cart.get(productId);

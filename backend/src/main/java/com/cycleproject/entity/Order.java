@@ -25,7 +25,9 @@ public class Order {
     private User customer;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderItem> items;
+    @Builder.Default
+    @ToString.Exclude
+    private List<OrderItem> items = new java.util.ArrayList<>();
 
     @Column(precision = 12, scale = 2)
     private BigDecimal totalAmount;

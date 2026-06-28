@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class OrderService {
@@ -79,12 +81,61 @@ public class OrderService {
         return new ApiResponse(true, "Order placed successfully", order.getOrderNumber());
     }
 
-    public List<Order> getCustomerOrders(Long customerId) {
-        return orderRepository.findByCustomerId(customerId);
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAllOrders() {
+        List<Order> orders = orderRepository.findAll();
+        return mapOrders(orders);
     }
 
-    public List<Order> getPendingOrders() {
-        return orderRepository.findByStatus(Order.OrderStatus.PENDING);
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getCustomerOrders(Long customerId) {
+        List<Order> orders = orderRepository.findByCustomerId(customerId);
+        return mapOrders(orders);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getPendingOrders() {
+        List<Order> orders = orderRepository.findByStatus(Order.OrderStatus.PENDING);
+        return mapOrders(orders);
+    }
+
+    private List<Map<String, Object>> mapOrders(List<Order> orders) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Order o : orders) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", o.getId());
+            map.put("orderNumber", o.getOrderNumber());
+            map.put("totalAmount", o.getTotalAmount());
+            map.put("gstAmount", o.getGstAmount());
+            map.put("grandTotal", o.getGrandTotal());
+            map.put("status", o.getStatus() != null ? o.getStatus().name() : "PENDING");
+            map.put("notes", o.getNotes());
+            map.put("orderDate", o.getOrderDate() != null ? o.getOrderDate().toString() : "");
+            
+            Map<String, Object> custMap = new HashMap<>();
+            if (o.getCustomer() != null) {
+                custMap.put("id", o.getCustomer().getId());
+                custMap.put("businessName", o.getCustomer().getBusinessName());
+                custMap.put("email", o.getCustomer().getEmail());
+            }
+            map.put("customer", custMap);
+
+            List<Map<String, Object>> items = new ArrayList<>();
+            if (o.getItems() != null) {
+                for (OrderItem item : o.getItems()) {
+                    Map<String, Object> itemMap = new HashMap<>();
+                    itemMap.put("id", item.getId());
+                    itemMap.put("productName", item.getProduct().getName());
+                    itemMap.put("quantity", item.getQuantity());
+                    itemMap.put("unitPrice", item.getUnitPrice());
+                    itemMap.put("totalPrice", item.getTotalPrice());
+                    items.add(itemMap);
+                }
+            }
+            map.put("items", items);
+            result.add(map);
+        }
+        return result;
     }
 
     public ApiResponse updateOrderStatus(Long orderId, String status) {
@@ -96,12 +147,16 @@ public class OrderService {
         return new ApiResponse(true, "Order status updated");
     }
 
-    public List<Order> getOrdersByDateRange(LocalDateTime start, LocalDateTime end) {
-        return orderRepository.findByDateRange(start, end);
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getOrdersByDateRange(LocalDateTime start, LocalDateTime end) {
+        List<Order> orders = orderRepository.findByDateRange(start, end);
+        return mapOrders(orders);
     }
 
-    public List<Order> getCustomerOrdersByDateRange(Long customerId, LocalDateTime start, LocalDateTime end) {
-        return orderRepository.findByCustomerAndDateRange(customerId, start, end);
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getCustomerOrdersByDateRange(Long customerId, LocalDateTime start, LocalDateTime end) {
+        List<Order> orders = orderRepository.findByCustomerAndDateRange(customerId, start, end);
+        return mapOrders(orders);
     }
 
     @Transactional

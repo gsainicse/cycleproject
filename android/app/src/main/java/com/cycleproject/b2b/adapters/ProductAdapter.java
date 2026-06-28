@@ -10,6 +10,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.request.target.Target;
 import com.cycleproject.b2b.R;
 import com.cycleproject.b2b.activities.ProductDetailActivity;
 import com.google.gson.Gson;
@@ -53,13 +58,13 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
 
         // Load Image
         List<Map<String, Object>> media = (List<Map<String, Object>>) product.get("media");
-        String imageUrl = null;
+        String finalImageUrl = null;
         if (media != null && !media.isEmpty()) {
             android.util.Log.d("ProductAdapter", "Product: " + product.get("name") + " has " + media.size() + " media items");
             for (Map<String, Object> m : media) {
                 if ("IMAGE".equals(m.get("mediaType"))) {
-                    imageUrl = BASE_URL + getStr(m, "filePath");
-                    android.util.Log.d("ProductAdapter", "Loading image: " + imageUrl);
+                    finalImageUrl = BASE_URL + getStr(m, "filePath");
+                    android.util.Log.d("ProductAdapter", "Loading image: " + finalImageUrl);
                     break;
                 }
             }
@@ -68,9 +73,20 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
         }
 
         Glide.with(context)
-                .load(imageUrl)
+                .load(finalImageUrl)
                 .placeholder(android.R.drawable.ic_menu_gallery)
                 .error(android.R.drawable.ic_menu_report_image)
+                .listener(new RequestListener<android.graphics.drawable.Drawable>() {
+                    @Override
+                    public boolean onLoadFailed(@androidx.annotation.Nullable GlideException e, Object model, Target<android.graphics.drawable.Drawable> target, boolean isFirstResource) {
+                        android.util.Log.e("ProductAdapter", "Glide load failed for: " + model, e);
+                        return false;
+                    }
+                    @Override
+                    public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model, Target<android.graphics.drawable.Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                        return false;
+                    }
+                })
                 .into(holder.ivProduct);
 
         holder.itemView.setOnClickListener(v -> {

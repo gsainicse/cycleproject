@@ -76,26 +76,41 @@ public class OrderHistoryActivity extends AppCompatActivity {
     private void loadOrders() {
         swipeRefresh.setRefreshing(true);
         Call<ApiResponse> call = session.isAdmin() ?
-                apiService.getAdminPendingOrders() : apiService.getMyOrders();
+                apiService.getAdminOrders() : apiService.getMyOrders();
 
         call.enqueue(new Callback<ApiResponse>() {
             @Override
             public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
                 swipeRefresh.setRefreshing(false);
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    Object data = response.body().getData();
-                    if (data instanceof List) {
-                        orders.clear();
-                        orders.addAll((List<Map<String, Object>>) data);
-                        adapter.notifyDataSetChanged();
+                if (response.isSuccessful() && response.body() != null) {
+                    ApiResponse apiResponse = response.body();
+                    if (apiResponse.isSuccess()) {
+                        Object data = apiResponse.getData();
+                        if (data instanceof List) {
+                            orders.clear();
+                            orders.addAll((List<Map<String, Object>>) data);
+                            adapter.notifyDataSetChanged();
+                        }
+                    } else {
+                        Toast.makeText(OrderHistoryActivity.this, apiResponse.getMessage(), Toast.LENGTH_LONG).show();
+
+                } else {
+                    String errorMsg = "Failed to load orders";
+                    if (response.errorBody() != null) {
+                        try {
+                            errorMsg += " (" + response.code() + "): " + response.errorBody().string();
+                        } catch (java.io.IOException e) {}
                     }
+                    Toast.makeText(OrderHistoryActivity.this, errorMsg, Toast.LENGTH_LONG).show();
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse> call, Throwable t) {
                 swipeRefresh.setRefreshing(false);
-                Toast.makeText(OrderHistoryActivity.this, "Error loading orders", Toast.LENGTH_SHORT).show();
+                String msg = t.getMessage();
+                if (msg == null) msg = t.getClass().getSimpleName();
+                Toast.makeText(OrderHistoryActivity.this, "Network error: " + msg, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -109,19 +124,34 @@ public class OrderHistoryActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
                 swipeRefresh.setRefreshing(false);
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    Object data = response.body().getData();
-                    if (data instanceof List) {
-                        orders.clear();
-                        orders.addAll((List<Map<String, Object>>) data);
-                        adapter.notifyDataSetChanged();
+                if (response.isSuccessful() && response.body() != null) {
+                    ApiResponse apiResponse = response.body();
+                    if (apiResponse.isSuccess()) {
+                        Object data = apiResponse.getData();
+                        if (data instanceof List) {
+                            List<Map<String, Object>> allOrders = (List<Map<String, Object>>) data;
+                            orders.clear();
+                            for (Map<String, Object> o : allOrders) {
+                                if ("PENDING".equals(o.get("status"))) {
+                                    orders.add(o);
+                                }
+                            }
+                            adapter.notifyDataSetChanged();
+                        }
+                    } else {
+                        Toast.makeText(OrderHistoryActivity.this, apiResponse.getMessage(), Toast.LENGTH_LONG).show();
                     }
+                } else {
+                    Toast.makeText(OrderHistoryActivity.this, "Failed to load pending orders", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse> call, Throwable t) {
                 swipeRefresh.setRefreshing(false);
+                String msg = t.getMessage();
+                if (msg == null) msg = t.getClass().getSimpleName();
+                Toast.makeText(OrderHistoryActivity.this, "Network error: " + msg, Toast.LENGTH_SHORT).show();
             }
         });
     }

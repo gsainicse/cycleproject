@@ -12,6 +12,7 @@ import com.cycleproject.b2b.api.RetrofitClient;
 import com.cycleproject.b2b.adapters.CartAdapter;
 import com.cycleproject.b2b.models.ApiResponse;
 import com.cycleproject.b2b.models.OrderRequest;
+import com.cycleproject.b2b.utils.CartManager;
 import com.google.android.material.textfield.TextInputEditText;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -23,10 +24,11 @@ public class PlaceOrderActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private CartAdapter adapter;
     private ApiService apiService;
+    private CartManager cartManager;
     private TextInputEditText etNotes;
     private Button btnPlaceOrder;
     private List<Map<String, Object>> products = new ArrayList<>();
-    private Map<Long, Integer> cart = new HashMap<>();
+    private Map<String, Integer> cart = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,19 +40,20 @@ public class PlaceOrderActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
         apiService = RetrofitClient.getApiService(this);
+        cartManager = new CartManager(this);
 
         recyclerView = findViewById(R.id.recycler_view);
         etNotes = findViewById(R.id.et_notes);
         btnPlaceOrder = findViewById(R.id.btn_place_order);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        
+        // Sync cart from manager
+        cart.clear();
+        cart.putAll(cartManager.getCart());
+
         adapter = new CartAdapter(this, products, cart);
         recyclerView.setAdapter(adapter);
-
-        long preSelectedId = getIntent().getLongExtra("selected_product_id", -1);
-        if (preSelectedId != -1) {
-            cart.put(preSelectedId, 1);
-        }
 
         btnPlaceOrder.setOnClickListener(v -> placeOrder());
         loadProducts();
@@ -71,9 +74,24 @@ public class PlaceOrderActivity extends AppCompatActivity {
                     if (apiResponse.isSuccess()) {
                         Object data = apiResponse.getData();
                         if (data instanceof List) {
+                            List<Map<String, Object>> allProducts = (List<Map<String, Object>>) data;
                             products.clear();
-                            products.addAll((List<Map<String, Object>>) data);
+                            
+                            android.util.Log.d("PlaceOrder", "Cart size: " + cart.size());
+                            for (Map<String, Object> p : allProducts) {
+                                Object idObj = p.get("id");
+                                if (idObj != null) {
+                                    String id = String.valueOf(idObj instanceof Double ? ((Double) idObj).longValue() : idObj);
+                                    if (cart.containsKey(id)) {
+                                        android.util.Log.d("PlaceOrder", "Adding product to view: " + p.get("name"));
+                                        products.add(p);
+                                    }
+                                }
+                            }
                             adapter.notifyDataSetChanged();
+                            if (products.isEmpty()) {
+                                Toast.makeText(PlaceOrderActivity.this, "Your cart is empty", Toast.LENGTH_SHORT).show();
+                            }
                         }
                     } else {
                         Toast.makeText(PlaceOrderActivity.this, apiResponse.getMessage(), Toast.LENGTH_LONG).show();
@@ -98,6 +116,13 @@ public class PlaceOrderActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Save current cart state when leaving activity
+        cartManager.saveCart(cart);
+    }
+
     private void placeOrder() {
         if (cart.isEmpty()) {
             Toast.makeText(this, "Please add items to cart", Toast.LENGTH_SHORT).show();
@@ -105,9 +130,10 @@ public class PlaceOrderActivity extends AppCompatActivity {
         }
 
         List<OrderRequest.OrderItemRequest> items = new ArrayList<>();
-        for (Map.Entry<Long, Integer> entry : cart.entrySet()) {
+        for (Map.Entry<String, Integer> entry : cart.entrySet()) {
             if (entry.getValue() > 0) {
-                items.add(new OrderRequest.OrderItemRequest(entry.getKey(), entry.getValue()));
+                long productId = Long.parseLong(entry.getKey());
+                items.add(new OrderRequest.OrderItemRequest(productId, entry.getValue()));
             }
         }
 
@@ -124,6 +150,8 @@ public class PlaceOrderActivity extends AppCompatActivity {
             public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
                 btnPlaceOrder.setEnabled(true);
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    cart.clear(); // Clear memory
+                    cartManager.clearCart(); // Clear storage
                     Toast.makeText(PlaceOrderActivity.this, "Order placed successfully!", Toast.LENGTH_LONG).show();
                     finish();
                 } else {

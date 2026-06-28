@@ -99,6 +99,7 @@ public class AdminController {
             @RequestPart("product") ProductRequest request,
             @RequestPart(value = "images", required = false) MultipartFile[] images,
             @RequestPart(value = "videos", required = false) MultipartFile[] videos) {
+        System.out.println("Admin adding product: " + request.getName() + " with " + (images != null ? images.length : 0) + " images");
         return ResponseEntity.ok(productService.addProduct(request, images, videos));
     }
 
@@ -114,6 +115,11 @@ public class AdminController {
     }
 
     // ====== ORDER MANAGEMENT ======
+
+    @GetMapping("/orders")
+    public ResponseEntity<ApiResponse> getAllOrders() {
+        return ResponseEntity.ok(new ApiResponse(true, "All orders", orderService.getAllOrders()));
+    }
 
     @GetMapping("/orders/pending")
     public ResponseEntity<ApiResponse> getPendingOrders() {

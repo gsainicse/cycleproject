@@ -179,11 +179,23 @@ public class ProductService {
     private String saveFile(MultipartFile file, String subDir) {
         try {
             String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            Path path = Paths.get(uploadDir, subDir, fileName);
+            Path rootPath = Paths.get(uploadDir).toAbsolutePath();
+            Path path = rootPath.resolve(subDir).resolve(fileName);
+            
+            System.out.println("Saving file to: " + path.toString());
+            
             Files.createDirectories(path.getParent());
             Files.write(path, file.getBytes());
+            
+            if (Files.exists(path)) {
+                System.out.println("File successfully written. Size: " + Files.size(path) + " bytes");
+            } else {
+                System.err.println("File write reported success but file is missing!");
+            }
+
             return "/uploads/" + subDir + "/" + fileName;
         } catch (IOException e) {
+            System.err.println("Error saving file: " + e.getMessage());
             return null;
         }
     }
